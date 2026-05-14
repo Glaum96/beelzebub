@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bar-dag Oslo 🍺</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #0d0b09;
+      --surface: #161310;
+      --surface2: #1e1a15;
+      --border: #2a231a;
+      --gold: #c8883a;
+      --gold-lt: #e8b86a;
+      --cream: #f2ead8;
+      --muted: #756a5a;
+      --red: #c94030;
+      --r: 10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--cream);
+      font-family: 'DM Sans', sans-serif;
+      overflow: hidden;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      grid-template-rows: 58px 1fr;
+      height: 100vh;
+    }
+
+    /* HEADER */
+    header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 22px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      z-index: 20;
+    }
+
+    .h-beer { font-size: 1.4rem; }
+
+    .h-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.15rem;
+      font-weight: 900;
+      color: var(--gold-lt);
+    }
+
+    .h-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-left: 8px;
+      font-weight: 300;
+    }
+
+    .h-badge {
+      margin-left: auto;
+      background: var(--border);
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4px 11px;
+      border-radius: 99px;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .sb-inner { padding: 16px 14px 40px; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .stat {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 10px 8px;
+      text-align: center;
+    }
+
+    .stat-val {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.35rem;
+      color: var(--gold);
+      line-height: 1;
+    }
+
+    .stat-lbl {
+      font-size: 0.64rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 4px;
+    }
+
+    .list { display: flex; flex-direction: column; }
+
+    .walk-line {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 3px 0 3px 12px;
+      color: var(--muted);
+      font-size: 0.69rem;
+    }
+
+    .walk-line::before {
+      content: '';
+      display: block;
+      width: 1px;
+      height: 18px;
+      background: var(--border);
+    }
+
+    .card {
+      position: relative;
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 11px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 12px 13px;
+      cursor: pointer;
+      transition: border-color 0.18s, transform 0.14s;
+      overflow: hidden;
+    }
+
+    .card::after {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--gold);
+      opacity: 0;
+      transition: opacity 0.18s;
+    }
+
+    .card:hover { border-color: var(--gold); transform: translateX(3px); }
+    .card:hover::after { opacity: 1; }
+    .card.active { border-color: var(--gold); transform: translateX(3px); }
+    .card.active::after { opacity: 1; }
+
+    .num {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: var(--gold);
+      color: #0d0b09;
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 0.92rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .num.end { background: var(--red); color: #fff; }
+
+    .c-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: var(--cream);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .c-addr {
+      font-size: 0.69rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .c-note {
+      font-size: 0.74rem;
+      color: var(--gold-lt);
+      opacity: 0.85;
+      margin-top: 5px;
+      line-height: 1.4;
+    }
+
+    .c-time {
+      font-size: 0.67rem;
+      color: var(--muted);
+      margin-top: 5px;
+    }
+
+    /* MAP */
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #0d0b09;
+    }
+
+    .leaflet-tile-pane {
+      filter: saturate(0.5) brightness(0.7);
+    }
+
+    /* Popup */
+    .leaflet-popup-content-wrapper {
+      background: #161310 !important;
+      border: 1px solid #2a231a !important;
+      border-radius: 10px !important;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.7) !important;
+      color: #f2ead8 !important;
+      padding: 0 !important;
+    }
+
+    .leaflet-popup-content { margin: 0 !important; }
+    .leaflet-popup-tip { background: #161310 !important; }
+
+    .popup-body { padding: 13px 15px; min-width: 190px; }
+    .popup-stop { font-size: 0.62rem; color: #c8883a; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 3px; }
+    .popup-name { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; color: #f2ead8; }
+    .popup-addr { font-size: 0.71rem; color: #756a5a; margin-top: 4px; }
+    .popup-note { font-size: 0.74rem; color: #e8b86a; margin-top: 7px; line-height: 1.45; padding-top: 7px; border-top: 1px solid #2a231a; }
+
+    /* MOBILE */
+    @media (max-width: 680px) {
+      html, body { overflow: auto; }
+      .shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: 58px 50vh auto;
+        height: auto;
+      }
+      #map { height: 50vh; }
+      .sidebar { overflow: visible; }
+      .h-sub { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <header>
+    <span class="h-beer">🍺</span>
+    <span class="h-title">Bar-dag Oslo <span class="h-sub">Sentrum → Grønland → Grünerløkka → Renna</span></span>
+    <span class="h-badge">8 stopp · til fots</span>
+  </header>
+
+  <aside class="sidebar">
+    <div class="sb-inner">
+      <div class="stats">
+        <div class="stat"><div class="stat-val">8</div><div class="stat-lbl">Barer</div></div>
+        <div class="stat"><div class="stat-val">~45</div><div class="stat-lbl">Min gange</div></div>
+        <div class="stat"><div class="stat-val">3,5</div><div class="stat-lbl">Km totalt</div></div>
+      </div>
+      <div class="list" id="list"></div>
+    </div>
+  </aside>
+
+  <div id="map"></div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const BARS = [
+  { n:1, name:"Luna Park",        addr:"Akersgata 47",       note:"Start her! Billigste øl i Oslo, skjult i en lun bakgate.",              time:"ca. 15:00", walk:"~8 min gange",  lat:59.9146176, lng:10.7420102 },
+  { n:2, name:"Teddy's Soft Bar", addr:"Brugata 3A",         note:"Ikonisk 50-talls interiør med jukeboks. En Oslo-institusjon.",           time:"ca. 16:15", walk:"~2 min gange",  lat:59.9143242, lng:10.7541842 },
+  { n:3, name:"Queens Pub",       addr:"Brugata 14",         note:"Rett rundt hjørnet fra Teddy's. Live musikk noen kvelder!",              time:"ca. 17:30", walk:"~3 min gange",  lat:59.9136984, lng:10.7553165 },
+  { n:4, name:"Rett Inn",         addr:"Storgata 39",        note:"Billig øl og Spotify-jukeboks. Ingen fjas.",                             time:"ca. 18:45", walk:"~6 min gange",  lat:59.9151230, lng:10.7546444 },
+  { n:5, name:"Bar Royal",        addr:"Hausmanns gate 8b",  note:"Kul nabolagskro med Åge på anlegget.",                                  time:"ca. 20:00", walk:"~10 min gange", lat:59.9173011, lng:10.7552914 },
+  { n:6, name:"Cafe Stolen",      addr:"Helgesens gate 32",  note:"Hyggelig atmosfære og rimelige priser i Grünerløkka.",                  time:"ca. 21:15", walk:"~5 min gange",  lat:59.9242596, lng:10.7626076 },
+  { n:7, name:"Naboens Pub",      addr:"Toftes gate 30",     note:"Klassisk brunkro med god stemning.",                                     time:"ca. 22:30", walk:"~15 min gange", lat:59.9270701, lng:10.7612769 },
+  { n:8, name:"Renna",            addr:"Trondheimsveien 187",note:"Sluttstasjon! Reggae-vibes og god stemning sent på natten.",             time:"ca. 23:45", walk:null,             lat:59.9350957, lng:10.7803381 }
+];
+
+// Build sidebar
+const listEl = document.getElementById('list');
+const cards = [];
+
+BARS.forEach((b, i) => {
+  if (i > 0) {
+    const wl = document.createElement('div');
+    wl.className = 'walk-line';
+    wl.textContent = BARS[i-1].walk;
+    listEl.appendChild(wl);
+  }
+
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.innerHTML = `
+    <div class="num${b.n===8?' end':''}">${b.n}</div>
+    <div>
+      <div class="c-name">${b.name}</div>
+      <div class="c-addr">${b.addr}, Oslo</div>
+      <div class="c-note">${b.note}</div>
+      <div class="c-time">🕐 ${b.time}</div>
+    </div>`;
+  el.addEventListener('click', () => select(i));
+  listEl.appendChild(el);
+  cards.push(el);
+});
+
+// Init map
+const map = L.map('map', { center:[59.921, 10.762], zoom:13 });
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
+  maxZoom: 19
+}).addTo(map);
+
+// Route polyline
+const pts = BARS.map(b => [b.lat, b.lng]);
+L.polyline(pts, { color:'#c8883a', weight:4, opacity:0.75, dashArray:'9 7' }).addTo(map);
+
+// Markers
+const markers = BARS.map((b, i) => {
+  const isEnd = b.n === 8;
+  const bg = isEnd ? '#c94030' : '#c8883a';
+  const fg = isEnd ? '#fff' : '#0d0b09';
+
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${bg};display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,0.6);"><span style="transform:rotate(45deg);font-family:'Playfair Display',serif;font-weight:700;font-size:13px;color:${fg};">${b.n}</span></div>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 34],
+    popupAnchor: [0, -38]
+  });
+
+  const m = L.marker([b.lat, b.lng], { icon }).addTo(map)
+    .bindPopup(`<div class="popup-body"><div class="popup-stop">Stopp ${b.n} av 8</div><div class="popup-name">${b.name}</div><div class="popup-addr">${b.addr}, Oslo</div><div class="popup-note">${b.note}</div></div>`, { maxWidth:240, minWidth:210 });
+
+  m.on('click', () => select(i));
+  return m;
+});
+
+map.fitBounds(L.latLngBounds(pts), { padding:[44,44] });
+
+function select(i) {
+  cards.forEach(c => c.classList.remove('active'));
+  cards[i].classList.add('active');
+  cards[i].scrollIntoView({ behavior:'smooth', block:'nearest' });
+  map.flyTo([BARS[i].lat, BARS[i].lng], 15, { duration:0.7 });
+  markers[i].openPopup();
+}
+</script>
+</body>
+</html>
